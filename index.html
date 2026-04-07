@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#ffffff">
     <title>AI Sales Roleplay Mobile Web</title>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24..48,400,1,0" rel="stylesheet" />
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -136,7 +137,7 @@
 <div id="app">
     
     <!-- Header -->
-    <header class="safe-area-pt px-5 flex items-center justify-between z-20">
+    <header id="app-header" class="safe-area-pt px-5 flex items-center justify-between z-20 opacity-0 pointer-events-none transition-opacity duration-500">
         <div class="w-10 h-10"></div>
         <div class="flex flex-col items-center justify-center max-w-[55vw]">
             <div class="flex items-center justify-center gap-1.5 bg-gray-100 px-3 py-1.5 rounded-2xl transition-all w-full">
@@ -145,14 +146,26 @@
                 <span id="timer" class="text-xs font-mono font-semibold text-gray-600 shrink-0">00:00</span>
             </div>
         </div>
-        <button onclick="openTranscript()" class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center active:bg-gray-200 transition-colors">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#18181b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-        </button>
+        <div class="w-10 h-10"></div>
     </header>
 
     <!-- Main Content Area -->
     <main class="flex-1 flex flex-col items-center justify-center px-6 relative z-10 w-full">
-        <div id="status-label" class="text-sm font-medium text-gray-400 mb-8 h-5 transition-opacity duration-300 tracking-wide uppercase">
+        
+        <!-- Start Screen Overlay -->
+        <div id="start-screen" class="absolute inset-0 flex flex-col items-center justify-center bg-white z-20 transition-opacity duration-500">
+            <h2 class="text-2xl font-bold text-gray-900 mb-2 text-center">Ready to practice?</h2>
+            <p class="text-gray-500 text-center mb-12 max-w-xs">Tap start to begin the Rapport and Framing Training Phase.</p>
+            
+            <div class="flex flex-col items-center gap-2">
+                <button onclick="startConversation()" class="w-16 h-16 bg-[#0ea5e9] rounded-full flex items-center justify-center active:scale-95 transition-transform text-white">
+                    <span class="material-symbols-rounded text-[36px]">play_arrow</span>
+                </button>
+                <span class="text-[11px] font-medium text-gray-400 uppercase tracking-wide">Start</span>
+            </div>
+        </div>
+
+        <div id="status-label" class="text-sm font-medium text-gray-400 mb-8 h-5 transition-opacity duration-300 tracking-wide uppercase opacity-0">
             Connecting...
         </div>
 
@@ -171,33 +184,32 @@
     </main>
 
     <!-- Bottom Controls -->
-    <footer class="safe-area-pb px-8 flex justify-center items-center gap-10 z-20 bg-white">
+    <footer id="app-footer" class="safe-area-pb px-8 flex justify-center items-center gap-10 z-20 bg-white opacity-0 pointer-events-none transition-opacity duration-500">
         
         <!-- Left: Options Button -->
         <div class="flex flex-col items-center gap-2">
             <button onclick="openOptions()" class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center active:scale-95 transition-transform text-gray-900">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                <span class="material-symbols-rounded text-[28px]">more_horiz</span>
             </button>
             <span class="text-[11px] font-medium text-gray-400 uppercase tracking-wide">Options</span>
         </div>
 
         <!-- Center: Mute Toggle -->
-        <div class="flex flex-col items-center gap-2 mt-[-10px]"> 
-            <!-- Larger button for the primary action -->
-            <button id="btn-mute" onclick="toggleMute()" class="w-20 h-20 bg-gray-100 shadow-[0_8px_24px_rgba(0,0,0,0.04)] rounded-full flex items-center justify-center active:scale-95 transition-all duration-200 text-gray-900">
+        <div class="flex flex-col items-center gap-2"> 
+            <button id="btn-mute" onclick="toggleMute()" class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center active:scale-95 transition-all duration-200 text-gray-900">
                 <!-- Mic Icon (Default Unmuted) -->
-                <svg id="icon-mic-on" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+                <span id="icon-mic-on" class="material-symbols-rounded text-[32px]">mic</span>
                 <!-- Mic Off Icon (Hidden initially) -->
-                <svg id="icon-mic-off" class="hidden" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"></line><path d="M18.89 13.23A7.12 7.12 0 0 0 19 12v-2"></path><path d="M5 10v2a7 7 0 0 0 12 5"></path><path d="M15 9.34V5a3 3 0 0 0-5.68-1.33"></path><path d="M9 9v3a3 3 0 0 0 5.12 2.12"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
+                <span id="icon-mic-off" class="material-symbols-rounded hidden text-[32px]">mic_off</span>
             </button>
             <span id="label-mute" class="text-[11px] font-medium text-gray-400 uppercase tracking-wide">Mute</span>
         </div>
 
         <!-- Right: Finish Button -->
         <div class="flex flex-col items-center gap-2">
-            <button onclick="alert('Session Finished!')" class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center active:scale-95 transition-transform text-gray-900">
+            <button onclick="openConfirmation('finish')" class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center active:scale-95 transition-transform text-gray-900">
                 <!-- Tick Icon -->
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                <span class="material-symbols-rounded text-[32px]">check</span>
             </button>
             <span class="text-[11px] font-medium text-gray-400 uppercase tracking-wide">Finish</span>
         </div>
@@ -209,33 +221,35 @@
         <div class="flex-1 w-full" onclick="closeOptions()"></div>
         
         <div id="bottom-sheet" class="bg-white w-full rounded-t-[32px] px-6 pt-2 pb-8 safe-area-pb shadow-2xl flex flex-col">
-            <div class="w-12 h-1.5 bg-gray-200 rounded-full self-center my-4"></div>
-            <h3 class="text-center font-semibold text-gray-900 mb-6 mt-2 text-lg">Menu</h3>
+            <div class="w-12 h-1.5 bg-gray-200 rounded-full self-center my-4 mb-6"></div>
 
             <div class="flex flex-col gap-3">
-                <button class="w-full flex items-center gap-4 p-4 rounded-2xl bg-gray-50 active:bg-gray-100 transition-colors text-left">
-                    <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#18181b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                <button onclick="closeOptions(); openTranscript();" class="w-full flex items-center gap-4 p-4 rounded-2xl bg-gray-50 active:bg-gray-100 transition-colors text-left">
+                    <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm text-gray-900">
+                        <span class="material-symbols-rounded text-[20px]">history</span>
                     </div>
                     <div>
-                        <p class="font-semibold text-gray-900">Switch to Chat</p>
-                        <p class="text-xs text-gray-500">Continue this scenario via text</p>
+                        <p class="font-semibold text-gray-900">Chat History</p>
+                        <p class="text-xs text-gray-500">View the conversation transcript</p>
                     </div>
                 </button>
 
-                <button class="w-full flex items-center gap-4 p-4 rounded-2xl bg-gray-50 active:bg-gray-100 transition-colors text-left">
-                    <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#18181b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/></svg>
+                <button onclick="openLanguageSheet()" class="w-full flex items-center justify-between p-4 rounded-2xl bg-gray-50 active:bg-gray-100 transition-colors text-left">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm text-gray-900">
+                            <span class="material-symbols-rounded text-[20px]">language</span>
+                        </div>
+                        <div>
+                            <p class="font-semibold text-gray-900">Switch Language</p>
+                            <p id="current-language-text" class="text-xs text-gray-500">Tamil</p>
+                        </div>
                     </div>
-                    <div>
-                        <p class="font-semibold text-gray-900">Switch Language</p>
-                        <p class="text-xs text-gray-500">Change spoken language</p>
-                    </div>
+                    <span class="material-symbols-rounded text-gray-400">chevron_right</span>
                 </button>
 
-                <button class="w-full flex items-center gap-4 p-4 rounded-2xl bg-red-50 active:bg-red-100 transition-colors text-left">
-                    <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ff3b30" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"/><line x1="22" y1="2" x2="2" y2="22"/></svg>
+                <button onclick="openConfirmation('disconnect')" class="w-full flex items-center gap-4 p-4 rounded-2xl bg-red-50 active:bg-red-100 transition-colors text-left">
+                    <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm text-red-500">
+                        <span class="material-symbols-rounded text-[20px]">phone_disabled</span>
                     </div>
                     <div>
                         <p class="font-semibold text-red-600">Disconnect</p>
@@ -243,10 +257,6 @@
                     </div>
                 </button>
             </div>
-
-            <button onclick="closeOptions()" class="mt-6 w-full py-4 rounded-full bg-gray-100 font-semibold text-gray-900 active:bg-gray-200 transition-colors">
-                Cancel
-            </button>
         </div>
     </div>
 
@@ -254,45 +264,90 @@
     <div id="transcript-backdrop" class="fixed inset-0 bg-black/30 z-40 flex flex-col justify-end opacity-0 pointer-events-none transition-opacity duration-300">
         <div class="flex-1 w-full" onclick="closeTranscript()"></div>
         
-        <div id="transcript-sheet" class="bg-white w-full h-[85vh] rounded-t-[32px] shadow-2xl flex flex-col transform translate-y-full transition-transform duration-400 ease-[cubic-bezier(0.32,0.72,0,1)]">
+        <div id="transcript-sheet" class="bg-white w-full h-[95vh] rounded-t-[32px] shadow-2xl flex flex-col transform translate-y-full transition-transform duration-400 ease-[cubic-bezier(0.32,0.72,0,1)]">
             <!-- Header -->
-            <div class="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100 relative">
-                <div class="w-12 h-1.5 bg-gray-200 rounded-full absolute left-1/2 -translate-x-1/2 top-3"></div>
-                <div class="bg-gray-100 px-4 py-1.5 rounded-full">
-                    <span class="text-sm font-semibold text-gray-900">Transcript</span>
-                </div>
-                <button onclick="closeTranscript()" class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center active:bg-gray-200 transition-colors">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#18181b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-                </button>
+            <div class="flex items-center justify-center pt-3 pb-2 relative">
+                <div class="w-12 h-1.5 bg-gray-200 rounded-full"></div>
             </div>
 
             <!-- Content -->
             <div id="transcript-content" class="flex-1 overflow-y-auto px-6 py-6 flex flex-col gap-8 safe-area-pb">
-                
-                <!-- AI Summary Card -->
-                <div class="bg-white border-2 border-blue-500 rounded-2xl p-5 shadow-sm relative overflow-hidden">
-                    <div class="absolute inset-0 bg-blue-50/50 pointer-events-none"></div>
-                    <div class="relative z-10">
-                        <div class="flex items-center gap-2 mb-3">
-                            <div class="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                            </div>
-                            <span class="font-semibold text-gray-900 text-sm">AI Summary</span>
-                        </div>
-                        <ul class="list-disc pl-5 text-sm text-gray-800 space-y-1.5 marker:text-blue-500">
-                            <li>User is practicing an outbound sales pitch.</li>
-                            <li>Sarah (AI) is playing the role of a busy prospect.</li>
-                        </ul>
-                    </div>
-                </div>
-
-                <div>
-                    <h3 class="text-lg font-bold text-gray-900 mb-4">Conversation</h3>
-                    <div id="chat-history" class="flex flex-col gap-6">
-                        <!-- Messages will be injected here -->
-                    </div>
+                <div id="chat-history" class="flex flex-col gap-6">
+                    <!-- Messages will be injected here -->
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Bottom Sheet -->
+    <div id="confirm-backdrop" class="fixed inset-0 bg-black/40 z-[60] flex flex-col justify-end opacity-0 pointer-events-none transition-opacity duration-300">
+        <div class="flex-1 w-full" onclick="closeConfirmation()"></div>
+        
+        <div id="confirm-sheet" class="bg-white w-full rounded-t-[32px] px-6 pt-3 pb-8 safe-area-pb shadow-2xl flex flex-col transform translate-y-full transition-transform duration-400 ease-[cubic-bezier(0.32,0.72,0,1)]">
+            <!-- Drag Handle -->
+            <div class="w-10 h-1.5 bg-gray-200 rounded-full self-center mb-6"></div>
+
+            <!-- Content -->
+            <div class="flex flex-col">
+                <div id="confirm-icon-bg" class="w-14 h-14 rounded-2xl flex items-center justify-center mb-5 bg-blue-50 text-blue-500">
+                    <span id="confirm-icon" class="material-symbols-rounded text-[28px]">analytics</span>
+                </div>
+                
+                <h2 id="confirm-title" class="text-[22px] font-bold text-gray-900 mb-3 leading-tight">Ready to finish?</h2>
+                <p id="confirm-desc" class="text-[15px] text-gray-500 leading-relaxed mb-8">The AI will analyze your conversation and generate a detailed feedback report on your rapport and framing skills.</p>
+                
+                <!-- Buttons -->
+                <div class="flex flex-col gap-3">
+                    <button id="confirm-primary-btn" class="w-full py-4 rounded-2xl font-semibold text-[16px] text-white bg-[#0ea5e9] active:scale-95 transition-transform">
+                        Generate Report
+                    </button>
+                    <button onclick="closeConfirmation()" class="w-full py-4 rounded-2xl font-semibold text-[16px] text-gray-900 bg-gray-100 active:scale-95 transition-transform">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Language Bottom Sheet -->
+    <div id="language-backdrop" class="fixed inset-0 bg-black/40 z-[70] flex flex-col justify-end opacity-0 pointer-events-none transition-opacity duration-300">
+        <div class="flex-1 w-full" onclick="closeLanguageSheet()"></div>
+        
+        <div id="language-sheet" class="bg-white w-full rounded-t-[32px] px-6 pt-3 pb-8 safe-area-pb shadow-2xl flex flex-col transform translate-y-full transition-transform duration-400 ease-[cubic-bezier(0.32,0.72,0,1)]">
+            <!-- Drag Handle -->
+            <div class="w-10 h-1.5 bg-gray-200 rounded-full self-center mb-6"></div>
+            
+            <h2 class="text-xl font-bold text-gray-900 mb-6 text-center">Select Language</h2>
+
+            <div class="flex flex-col gap-2">
+                <button onclick="selectLanguage('English')" class="w-full flex items-center justify-between p-4 rounded-2xl active:bg-gray-50 transition-colors text-left border border-gray-100">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 font-bold text-sm">
+                            EN
+                        </div>
+                        <span class="font-semibold text-gray-900 text-[16px]">English</span>
+                    </div>
+                    <div id="lang-check-English" class="w-6 h-6 rounded-full bg-gray-900 text-white flex items-center justify-center hidden">
+                        <span class="material-symbols-rounded text-[16px]">check</span>
+                    </div>
+                </button>
+
+                <button onclick="selectLanguage('Tamil')" class="w-full flex items-center justify-between p-4 rounded-2xl active:bg-gray-50 transition-colors text-left border border-gray-100">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center text-orange-600 font-bold text-sm">
+                            TA
+                        </div>
+                        <span class="font-semibold text-gray-900 text-[16px]">Tamil</span>
+                    </div>
+                    <div id="lang-check-Tamil" class="w-6 h-6 rounded-full bg-gray-900 text-white flex items-center justify-center hidden">
+                        <span class="material-symbols-rounded text-[16px]">check</span>
+                    </div>
+                </button>
+            </div>
+            
+            <button onclick="closeLanguageSheet()" class="w-full py-4 mt-6 rounded-2xl font-semibold text-[16px] text-gray-900 bg-gray-100 active:scale-95 transition-transform">
+                Continue
+            </button>
         </div>
     </div>
 </div>
@@ -311,14 +366,48 @@
     let isSpeaking = false;
     let isMuted = false;
     let currentState = 'idle';
+    let currentLanguage = 'Tamil';
+
+    function openLanguageSheet() {
+        const backdrop = document.getElementById('language-backdrop');
+        const sheet = document.getElementById('language-sheet');
+        
+        // Update checkmarks
+        document.getElementById('lang-check-English').classList.toggle('hidden', currentLanguage !== 'English');
+        document.getElementById('lang-check-Tamil').classList.toggle('hidden', currentLanguage !== 'Tamil');
+        
+        backdrop.classList.remove('opacity-0', 'pointer-events-none');
+        setTimeout(() => {
+            sheet.classList.remove('translate-y-full');
+        }, 10);
+    }
+
+    function closeLanguageSheet() {
+        const backdrop = document.getElementById('language-backdrop');
+        const sheet = document.getElementById('language-sheet');
+        
+        sheet.classList.add('translate-y-full');
+        setTimeout(() => {
+            backdrop.classList.add('opacity-0', 'pointer-events-none');
+        }, 300);
+    }
+
+    function selectLanguage(lang) {
+        currentLanguage = lang;
+        document.getElementById('current-language-text').innerText = lang;
+        
+        // Update checkmarks immediately
+        document.getElementById('lang-check-English').classList.toggle('hidden', currentLanguage !== 'English');
+        document.getElementById('lang-check-Tamil').classList.toggle('hidden', currentLanguage !== 'Tamil');
+    }
 
     const scriptFlow = [
         { state: 'processing', text: "", duration: 1500 },
-        { state: 'ai', text: "Hey, this is Sarah. I only have a quick minute. What's the reason for the call?", duration: 4500 },
+        { state: 'ai', text: "Hey, na AI pesuren. Enkitta oru nimisham dhaan irukku. Enna vishayama call panneenga?", duration: 4500 },
         { state: 'idle', text: "", duration: 1000 },
-        { state: 'user', text: "Thanks for picking up, Sarah. I'm calling because we help tech firms boost their outbound meeting rates by 30%.", duration: 5500 },
+        { state: 'user', text: "Call eduthathukku thanks, AI. Naanga tech firms-oda outbound meeting rates-a 30% boost panna help panrom, adhaan call pannen.", duration: 5500 },
         { state: 'processing', text: "", duration: 2000 },
-        { state: 'ai', text: "That sounds interesting, but we just signed with a new vendor for enablement. How are you different?", duration: 5500 },
+        { state: 'ai', text: "Kekka nalla irukku, aana naanga ippo dhaan oru pudhu vendor kooda sign panni irukkom. Neenga eppadi different?", duration: 5500 },
         { state: 'idle', text: "", duration: 2000 }
     ];
 
@@ -391,23 +480,23 @@
         msgWrapper.className = `flex flex-col w-full ${isAI ? 'items-start' : 'items-end'} opacity-0 translate-y-2 transition-all duration-300`;
         
         const nameSpan = document.createElement('span');
-        nameSpan.className = `text-[11px] font-semibold uppercase tracking-wider mb-1 px-1 ${isAI ? 'text-gray-500' : 'text-blue-500'}`;
-        nameSpan.innerText = isAI ? 'Sarah (AI)' : 'You';
+        nameSpan.className = `text-[11px] font-semibold uppercase tracking-wider mb-1 px-1 ${isAI ? 'text-[#0ea5e9]' : 'text-gray-500'}`;
+        nameSpan.innerText = isAI ? 'AI' : 'You';
         
         // Main Bubble
         const bubbleDiv = document.createElement('div');
-        bubbleDiv.className = `flex flex-col gap-3 p-3 max-w-[90%] sm:max-w-[85%] shadow-sm ${isAI ? 'bg-gray-100 rounded-2xl rounded-tl-sm' : 'bg-[#0ea5e9] rounded-2xl rounded-tr-sm'}`;
+        bubbleDiv.className = `flex flex-col gap-1.5 p-1.5 max-w-[90%] sm:max-w-[85%] shadow-sm ${isAI ? 'bg-[#0ea5e9] rounded-[24px] rounded-tl-sm' : 'bg-gray-100 rounded-[24px] rounded-tr-sm'}`;
         
         // Voice Player Pill (White)
         const playerDiv = document.createElement('div');
-        playerDiv.className = `flex items-center gap-3 rounded-full p-1.5 pr-4 bg-white w-full`;
+        playerDiv.className = `flex items-center gap-3 rounded-[20px] px-4 py-3 bg-white w-full`;
         
         // Play button
         const playBtn = document.createElement('button');
-        playBtn.className = `w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-transform active:scale-95 ${isAI ? 'text-gray-700 bg-gray-50' : 'text-[#0ea5e9] bg-blue-50'}`;
+        playBtn.className = `flex items-center justify-center shrink-0 transition-transform active:scale-95 ${isAI ? 'text-[#0ea5e9]' : 'text-gray-700'}`;
         
-        const playIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none" class="ml-0.5"><path d="M5 3l14 9-14 9V3z"/></svg>`;
-        const pauseIcon = `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M6 4h4v16H6zm8 0h4v16h-4z"/></svg>`;
+        const playIcon = `<span class="material-symbols-rounded text-[22px]">play_arrow</span>`;
+        const pauseIcon = `<span class="material-symbols-rounded text-[22px]">pause</span>`;
         
         playBtn.innerHTML = playIcon;
         
@@ -425,20 +514,20 @@
         
         // Waveform (fake)
         const waveform = document.createElement('div');
-        waveform.className = 'flex-1 flex items-center gap-[2px] h-4 min-w-[100px]';
-        const numBars = 24;
+        waveform.className = 'flex-1 flex items-center gap-[3px] h-6 min-w-[120px]';
+        const numBars = 28;
         for(let i = 0; i < numBars; i++) {
             const bar = document.createElement('div');
             // Generate a random height between 20% and 100%
             const h = Math.max(20, Math.random() * 100);
-            bar.className = `w-[3px] rounded-full ${isAI ? 'bg-gray-300' : 'bg-blue-200'}`;
+            bar.className = `w-[3px] rounded-full ${isAI ? 'bg-[#0ea5e9] opacity-40' : 'bg-gray-300'}`;
             bar.style.height = `${h}%`;
             waveform.appendChild(bar);
         }
         
         // Duration
         const durSpan = document.createElement('span');
-        durSpan.className = `text-[10px] font-mono font-medium ${isAI ? 'text-gray-500' : 'text-[#0ea5e9]'}`;
+        durSpan.className = `text-[13px] font-medium tracking-wide ${isAI ? 'text-[#0ea5e9]' : 'text-gray-600'}`;
         const secs = Math.round((durationMs || 3000) / 1000);
         durSpan.innerText = `0:${secs.toString().padStart(2, '0')}`;
         
@@ -448,7 +537,7 @@
         
         // Text Content
         const textP = document.createElement('p');
-        textP.className = `text-[15px] leading-relaxed px-1 ${isAI ? 'text-gray-800' : 'text-white'}`;
+        textP.className = `text-[15px] leading-snug px-2.5 pb-2 pt-0.5 ${isAI ? 'text-white' : 'text-gray-800'}`;
         textP.innerText = text;
         
         bubbleDiv.appendChild(playerDiv);
@@ -509,7 +598,7 @@
             if (state === 'user' && isMuted) {
                 statusLabel.innerText = 'Microphone Muted';
             } else {
-                statusLabel.innerText = state === 'ai' ? 'Sarah is speaking' : 'Your turn to speak';
+                statusLabel.innerText = state === 'ai' ? 'AI is speaking' : 'Your turn to speak';
             }
             statusLabel.style.opacity = '1';
             animateBars();
@@ -560,9 +649,75 @@
         }
     }
 
-    window.addEventListener('DOMContentLoaded', () => {
-        setTimeout(runDemo, 800);
+    function startConversation() {
+        const startScreen = document.getElementById('start-screen');
+        const appHeader = document.getElementById('app-header');
+        const appFooter = document.getElementById('app-footer');
         
+        startScreen.style.opacity = '0';
+        
+        // Show header and footer
+        appHeader.classList.remove('opacity-0', 'pointer-events-none');
+        appFooter.classList.remove('opacity-0', 'pointer-events-none');
+        
+        setTimeout(() => {
+            startScreen.style.display = 'none';
+            runDemo();
+        }, 500);
+    }
+
+    function openConfirmation(type) {
+        const backdrop = document.getElementById('confirm-backdrop');
+        const sheet = document.getElementById('confirm-sheet');
+        
+        const iconBg = document.getElementById('confirm-icon-bg');
+        const icon = document.getElementById('confirm-icon');
+        const title = document.getElementById('confirm-title');
+        const desc = document.getElementById('confirm-desc');
+        const primaryBtn = document.getElementById('confirm-primary-btn');
+        
+        if (type === 'finish') {
+            iconBg.className = 'w-14 h-14 rounded-2xl flex items-center justify-center mb-5 bg-blue-50 text-[#0ea5e9]';
+            icon.innerText = 'analytics';
+            title.innerText = 'Generate feedback report?';
+            desc.innerText = 'The AI will analyze your conversation and generate a detailed feedback report on your rapport and framing skills.';
+            primaryBtn.className = 'w-full py-4 rounded-2xl font-semibold text-[16px] text-white bg-[#0ea5e9] active:scale-95 transition-transform';
+            primaryBtn.innerText = 'Generate Report';
+            primaryBtn.onclick = () => {
+                closeConfirmation();
+                alert('Generating report...');
+            };
+        } else if (type === 'disconnect') {
+            iconBg.className = 'w-14 h-14 rounded-2xl flex items-center justify-center mb-5 bg-red-50 text-red-500';
+            icon.innerText = 'phone_disabled';
+            title.innerText = 'End session without saving?';
+            desc.innerText = 'Your current progress will be lost and no feedback report will be generated.';
+            primaryBtn.className = 'w-full py-4 rounded-2xl font-semibold text-[16px] text-white bg-red-500 active:scale-95 transition-transform';
+            primaryBtn.innerText = 'Disconnect';
+            primaryBtn.onclick = () => {
+                closeConfirmation();
+                closeOptions();
+                alert('Disconnected.');
+            };
+        }
+        
+        backdrop.classList.remove('opacity-0', 'pointer-events-none');
+        setTimeout(() => {
+            sheet.classList.remove('translate-y-full');
+        }, 10);
+    }
+
+    function closeConfirmation() {
+        const backdrop = document.getElementById('confirm-backdrop');
+        const sheet = document.getElementById('confirm-sheet');
+        
+        sheet.classList.add('translate-y-full');
+        setTimeout(() => {
+            backdrop.classList.add('opacity-0', 'pointer-events-none');
+        }, 300);
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
         if (headerTitle) {
             headerTitle.addEventListener('click', (e) => {
                 e.stopPropagation();
