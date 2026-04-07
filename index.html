@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#ffffff">
+    <title>AI Sales Roleplay Mobile Web</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        :root {
+            --ai-color: #0ea5e9;
+            --user-color: #18181b;
+        }
+
+        body, html {
+            font-family: 'Inter', sans-serif;
+            background-color: #ffffff;
+            margin: 0;
+            padding: 0;
+            overscroll-behavior-y: none; 
+            height: 100dvh; 
+            width: 100vw;
+            overflow: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        #app {
+            display: flex;
+            flex-direction: column;
+            height: 100dvh;
+            width: 100vw;
+            position: relative;
+        }
+
+        /* --- Audio Visualizer --- */
+        .visualizer-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 120px;
+            position: relative;
+            z-index: 10;
+        }
+
+        .voice-bar {
+            width: 32px;
+            height: 32px; 
+            border-radius: 999px;
+            background-color: var(--user-color);
+            margin: 0 6px;
+            transition: height 0.1s ease, background-color 0.4s ease, opacity 0.3s ease;
+            will-change: height;
+        }
+
+        /* Visualizer States */
+        .state-ai .voice-bar {
+            background-color: var(--ai-color);
+            box-shadow: 0 4px 20px rgba(14, 165, 233, 0.3);
+        }
+
+        .state-processing .voice-bar {
+            background-color: #d4d4d8;
+            animation: breathe 1.2s infinite alternate ease-in-out;
+        }
+        .state-processing .voice-bar:nth-child(1) { animation-delay: 0s; }
+        .state-processing .voice-bar:nth-child(2) { animation-delay: 0.2s; }
+        .state-processing .voice-bar:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes breathe {
+            0% { height: 32px; opacity: 0.6; }
+            100% { height: 64px; opacity: 1; }
+        }
+
+        .ai-glow {
+            position: absolute;
+            width: 250px;
+            height: 250px;
+            background: radial-gradient(circle, rgba(14,165,233,0.12) 0%, rgba(255,255,255,0) 70%);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 0;
+            opacity: 0;
+            transition: opacity 0.6s ease;
+            pointer-events: none;
+        }
+        .state-ai ~ .ai-glow { opacity: 1; }
+
+        /* Muted State */
+        .is-muted .voice-bar {
+            background-color: #e4e4e7;
+            height: 32px !important;
+            animation: none !important;
+        }
+
+        /* --- Typography Animations --- */
+        .word {
+            opacity: 0;
+            transform: translateY(4px);
+            animation: revealWord 0.25s forwards cubic-bezier(0.2, 0.8, 0.2, 1);
+            display: inline-block;
+            margin-right: 0.25em;
+        }
+
+        @keyframes revealWord { to { opacity: 1; transform: translateY(0); } }
+
+        /* --- Mobile Utilities & Bottom Sheet --- */
+        .safe-area-pt { padding-top: max(1rem, env(safe-area-inset-top)); }
+        .safe-area-pb { padding-bottom: max(2rem, env(safe-area-inset-bottom)); }
+        
+        button { touch-action: manipulation; }
+
+        #sheet-backdrop {
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        #sheet-backdrop.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        
+        #bottom-sheet {
+            transform: translateY(100%);
+            transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+        }
+        #bottom-sheet.active {
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    
+    <!-- Header -->
+    <header class="safe-area-pt px-5 flex items-center justify-between z-20">
+        <div class="w-10 h-10"></div>
+        <div class="flex flex-col items-center justify-center">
+            <div class="flex items-center gap-2 bg-gray-100 px-3 py-1.5 rounded-full">
+                <span class="text-xs font-semibold text-gray-800">Rapport and Framing Training Phase</span>
+                <span class="text-xs text-gray-400 font-medium px-0.5">&bull;</span>
+                <span id="timer" class="text-xs font-mono font-semibold text-gray-600">00:00</span>
+            </div>
+        </div>
+        <button onclick="openTranscript()" class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center active:bg-gray-200 transition-colors">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#18181b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </button>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col items-center justify-center px-6 relative z-10 w-full">
+        <div id="status-label" class="text-sm font-medium text-gray-400 mb-8 h-5 transition-opacity duration-300 tracking-wide uppercase">
+            Connecting...
+        </div>
+
+        <div class="relative w-full flex justify-center">
+            <div id="visualizer" class="visualizer-container state-idle">
+                <div class="voice-bar"></div>
+                <div class="voice-bar"></div>
+                <div class="voice-bar"></div>
+            </div>
+            <div class="ai-glow"></div>
+        </div>
+
+        <div class="mt-12 w-full max-w-sm text-center min-h-[120px] flex flex-col justify-start">
+            <p id="transcript" class="text-2xl font-medium leading-snug tracking-tight transition-colors duration-300"></p>
+        </div>
+    </main>
+
+    <!-- Bottom Controls -->
+    <footer class="safe-area-pb px-8 flex justify-center items-center gap-10 z-20 bg-white">
+        
+        <!-- Left: Options Button -->
+        <div class="flex flex-col items-center gap-2">
+            <button onclick="openOptions()" class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center active:scale-95 transition-transform text-gray-900">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+            </button>
+            <span class="text-[11px] font-medium text-gray-400 uppercase tracking-wide">Options</span>
+        </div>
+
+        <!-- Center: Mute Toggle -->
+        <div class="flex flex-col items-center gap-2 mt-[-10px]"> 
+            <!-- Larger button for the primary action -->
+            <button id="btn-mute" onclick="toggleMute()" class="w-20 h-20 bg-gray-100 shadow-[0_8px_24px_rgba(0,0,0,0.04)] rounded-full flex items-center justify-center active:scale-95 transition-all duration-200 text-gray-900">
+                <!-- Mic Icon (Default Unmuted) -->
+                <svg id="icon-mic-on" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+                <!-- Mic Off Icon (Hidden initially) -->
+                <svg id="icon-mic-off" class="hidden" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" y1="2" x2="22" y2="22"></line><path d="M18.89 13.23A7.12 7.12 0 0 0 19 12v-2"></path><path d="M5 10v2a7 7 0 0 0 12 5"></path><path d="M15 9.34V5a3 3 0 0 0-5.68-1.33"></path><path d="M9 9v3a3 3 0 0 0 5.12 2.12"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
+            </button>
+            <span id="label-mute" class="text-[11px] font-medium text-gray-400 uppercase tracking-wide">Mute</span>
+        </div>
+
+        <!-- Right: Finish Button -->
+        <div class="flex flex-col items-center gap-2">
+            <button onclick="alert('Session Finished!')" class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center active:scale-95 transition-transform text-gray-900">
+                <!-- Tick Icon -->
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+            </button>
+            <span class="text-[11px] font-medium text-gray-400 uppercase tracking-wide">Finish</span>
+        </div>
+
+    </footer>
+
+    <!-- Options Bottom Sheet -->
+    <div id="sheet-backdrop" class="fixed inset-0 bg-black/30 z-30 flex flex-col justify-end">
+        <div class="flex-1 w-full" onclick="closeOptions()"></div>
+        
+        <div id="bottom-sheet" class="bg-white w-full rounded-t-[32px] px-6 pt-2 pb-8 safe-area-pb shadow-2xl flex flex-col">
+            <div class="w-12 h-1.5 bg-gray-200 rounded-full self-center my-4"></div>
+            <h3 class="text-center font-semibold text-gray-900 mb-6 mt-2 text-lg">Menu</h3>
+
+            <div class="flex flex-col gap-3">
+                <button class="w-full flex items-center gap-4 p-4 rounded-2xl bg-gray-50 active:bg-gray-100 transition-colors text-left">
+                    <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#18181b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-gray-900">Switch to Chat</p>
+                        <p class="text-xs text-gray-500">Continue this scenario via text</p>
+                    </div>
+                </button>
+
+                <button class="w-full flex items-center gap-4 p-4 rounded-2xl bg-gray-50 active:bg-gray-100 transition-colors text-left">
+                    <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#18181b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/></svg>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-gray-900">Switch Language</p>
+                        <p class="text-xs text-gray-500">Change spoken language</p>
+                    </div>
+                </button>
+
+                <button class="w-full flex items-center gap-4 p-4 rounded-2xl bg-red-50 active:bg-red-100 transition-colors text-left">
+                    <div class="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ff3b30" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"/><line x1="22" y1="2" x2="2" y2="22"/></svg>
+                    </div>
+                    <div>
+                        <p class="font-semibold text-red-600">Disconnect</p>
+                        <p class="text-xs text-red-400">End roleplay without saving</p>
+                    </div>
+                </button>
+            </div>
+
+            <button onclick="closeOptions()" class="mt-6 w-full py-4 rounded-full bg-gray-100 font-semibold text-gray-900 active:bg-gray-200 transition-colors">
+                Cancel
+            </button>
+        </div>
+    </div>
+
+    <!-- Transcript Bottom Sheet -->
+    <div id="transcript-backdrop" class="fixed inset-0 bg-black/30 z-40 flex flex-col justify-end opacity-0 pointer-events-none transition-opacity duration-300">
+        <div class="flex-1 w-full" onclick="closeTranscript()"></div>
+        
+        <div id="transcript-sheet" class="bg-white w-full h-[85vh] rounded-t-[32px] shadow-2xl flex flex-col transform translate-y-full transition-transform duration-400 ease-[cubic-bezier(0.32,0.72,0,1)]">
+            <!-- Header -->
+            <div class="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100 relative">
+                <div class="w-12 h-1.5 bg-gray-200 rounded-full absolute left-1/2 -translate-x-1/2 top-3"></div>
+                <div class="bg-gray-100 px-4 py-1.5 rounded-full">
+                    <span class="text-sm font-semibold text-gray-900">Transcript</span>
+                </div>
+                <button onclick="closeTranscript()" class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center active:bg-gray-200 transition-colors">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#18181b" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                </button>
+            </div>
+
+            <!-- Content -->
+            <div id="transcript-content" class="flex-1 overflow-y-auto px-6 py-6 flex flex-col gap-8 safe-area-pb">
+                
+                <!-- AI Summary Card -->
+                <div class="bg-white border-2 border-blue-500 rounded-2xl p-5 shadow-sm relative overflow-hidden">
+                    <div class="absolute inset-0 bg-blue-50/50 pointer-events-none"></div>
+                    <div class="relative z-10">
+                        <div class="flex items-center gap-2 mb-3">
+                            <div class="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                            </div>
+                            <span class="font-semibold text-gray-900 text-sm">AI Summary</span>
+                        </div>
+                        <ul class="list-disc pl-5 text-sm text-gray-800 space-y-1.5 marker:text-blue-500">
+                            <li>User is practicing an outbound sales pitch.</li>
+                            <li>Sarah (AI) is playing the role of a busy prospect.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900 mb-4">Conversation</h3>
+                    <div id="chat-history" class="flex flex-col gap-6">
+                        <!-- Messages will be injected here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const visualizer = document.getElementById('visualizer');
+    const bars = document.querySelectorAll('.voice-bar');
+    const statusLabel = document.getElementById('status-label');
+    const transcriptEl = document.getElementById('transcript');
+    const timerEl = document.getElementById('timer');
+
+    let animationFrameId;
+    let timerInterval;
+    let secondsElapsed = 0;
+    let isSpeaking = false;
+    let isMuted = false;
+    let currentState = 'idle';
+
+    const scriptFlow = [
+        { state: 'processing', text: "", duration: 1500 },
+        { state: 'ai', text: "Hey, this is Sarah. I only have a quick minute. What's the reason for the call?", duration: 4500 },
+        { state: 'idle', text: "", duration: 1000 },
+        { state: 'user', text: "Thanks for picking up, Sarah. I'm calling because we help tech firms boost their outbound meeting rates by 30%.", duration: 5500 },
+        { state: 'processing', text: "", duration: 2000 },
+        { state: 'ai', text: "That sounds interesting, but we just signed with a new vendor for enablement. How are you different?", duration: 5500 },
+        { state: 'idle', text: "", duration: 2000 }
+    ];
+
+    function toggleMute() {
+        isMuted = !isMuted;
+        
+        const iconOn = document.getElementById('icon-mic-on');
+        const iconOff = document.getElementById('icon-mic-off');
+        const btnMute = document.getElementById('btn-mute');
+        const labelMute = document.getElementById('label-mute');
+
+        if (isMuted) {
+            iconOn.classList.add('hidden');
+            iconOff.classList.remove('hidden');
+            
+            // Switch styles to indicate muted state
+            btnMute.classList.remove('bg-gray-100', 'text-gray-900', 'shadow-[0_8px_24px_rgba(0,0,0,0.04)]');
+            btnMute.classList.add('bg-gray-200', 'text-gray-500');
+            
+            labelMute.innerText = "Unmute";
+            visualizer.classList.add('is-muted');
+            
+            if(currentState === 'user') statusLabel.innerText = 'Microphone Muted';
+        } else {
+            iconOn.classList.remove('hidden');
+            iconOff.classList.add('hidden');
+            
+            // Revert styles to unmuted state
+            btnMute.classList.remove('bg-gray-200', 'text-gray-500');
+            btnMute.classList.add('bg-gray-100', 'text-gray-900', 'shadow-[0_8px_24px_rgba(0,0,0,0.04)]');
+            
+            labelMute.innerText = "Mute";
+            visualizer.classList.remove('is-muted');
+            
+            if(currentState === 'user') statusLabel.innerText = 'Your turn to speak';
+        }
+    }
+
+    function openOptions() {
+        document.getElementById('sheet-backdrop').classList.add('active');
+        document.getElementById('bottom-sheet').classList.add('active');
+    }
+
+    function closeOptions() {
+        document.getElementById('sheet-backdrop').classList.remove('active');
+        document.getElementById('bottom-sheet').classList.remove('active');
+    }
+
+    function openTranscript() {
+        const backdrop = document.getElementById('transcript-backdrop');
+        const sheet = document.getElementById('transcript-sheet');
+        backdrop.classList.remove('opacity-0', 'pointer-events-none');
+        sheet.classList.remove('translate-y-full');
+    }
+
+    function closeTranscript() {
+        const backdrop = document.getElementById('transcript-backdrop');
+        const sheet = document.getElementById('transcript-sheet');
+        backdrop.classList.add('opacity-0', 'pointer-events-none');
+        sheet.classList.add('translate-y-full');
+    }
+
+    function addMessageToTranscript(role, text) {
+        if (!text) return;
+        const chatHistory = document.getElementById('chat-history');
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'flex flex-col gap-1 opacity-0 translate-y-2 transition-all duration-300';
+        
+        const nameSpan = document.createElement('span');
+        nameSpan.className = `text-xs font-semibold uppercase tracking-wider ${role === 'ai' ? 'text-gray-500' : 'text-blue-500'}`;
+        nameSpan.innerText = role === 'ai' ? 'Sarah (AI)' : 'You';
+        
+        const textP = document.createElement('p');
+        textP.className = 'text-gray-900 text-[15px] leading-relaxed';
+        textP.innerText = text;
+        
+        msgDiv.appendChild(nameSpan);
+        msgDiv.appendChild(textP);
+        
+        chatHistory.appendChild(msgDiv);
+        
+        // Trigger reflow and animate in
+        requestAnimationFrame(() => {
+            msgDiv.classList.remove('opacity-0', 'translate-y-2');
+        });
+        
+        // Scroll to bottom
+        const transcriptContent = document.getElementById('transcript-content');
+        transcriptContent.scrollTop = transcriptContent.scrollHeight;
+    }
+
+    function animateBars() {
+        if (!isSpeaking || isMuted && currentState === 'user') {
+            bars.forEach(bar => bar.style.height = '32px');
+            return;
+        }
+        
+        bars.forEach(bar => {
+            const min = 32;
+            const max = 110;
+            let newHeight = Math.floor(Math.random() * (max - min + 1) + min);
+            
+            if (bar === bars[1]) {
+                newHeight = Math.min(max + 20, newHeight * 1.3);
+            }
+            bar.style.height = `${newHeight}px`;
+        });
+
+        setTimeout(() => {
+            animationFrameId = requestAnimationFrame(animateBars);
+        }, 120);
+    }
+
+    function setUIState(state) {
+        currentState = state;
+        cancelAnimationFrame(animationFrameId);
+        isSpeaking = false;
+        
+        visualizer.classList.remove('state-idle', 'state-ai', 'state-user', 'state-processing');
+        visualizer.classList.add('state-' + state);
+        
+        bars.forEach(bar => bar.style.height = '32px');
+        
+        if(state === 'ai') transcriptEl.className = 'text-2xl font-medium leading-snug tracking-tight text-[#0ea5e9]';
+        else transcriptEl.className = 'text-2xl font-medium leading-snug tracking-tight text-gray-900';
+
+        if (state === 'ai' || state === 'user') {
+            isSpeaking = true;
+            if (state === 'user' && isMuted) {
+                statusLabel.innerText = 'Microphone Muted';
+            } else {
+                statusLabel.innerText = state === 'ai' ? 'Sarah is speaking' : 'Your turn to speak';
+            }
+            statusLabel.style.opacity = '1';
+            animateBars();
+        } else if (state === 'processing') {
+            statusLabel.innerText = 'AI is thinking...';
+            statusLabel.style.opacity = '1';
+        } else {
+            statusLabel.style.opacity = '0';
+        }
+    }
+
+    function typeText(text, totalDuration) {
+        transcriptEl.innerHTML = '';
+        if (!text) return;
+
+        const words = text.split(' ');
+        const timePerWord = (totalDuration - 800) / words.length; 
+
+        words.forEach((word, index) => {
+            setTimeout(() => {
+                const span = document.createElement('span');
+                span.className = 'word';
+                span.innerText = word + ' ';
+                transcriptEl.appendChild(span);
+            }, index * timePerWord);
+        });
+    }
+
+    function updateTimer() {
+        secondsElapsed++;
+        const m = String(Math.floor(secondsElapsed / 60)).padStart(2, '0');
+        const s = String(secondsElapsed % 60).padStart(2, '0');
+        if (timerEl) timerEl.innerText = `${m}:${s}`;
+    }
+
+    async function runDemo() {
+        timerInterval = setInterval(updateTimer, 1000);
+        while (true) { 
+            document.getElementById('chat-history').innerHTML = ''; // Clear on loop
+            for (const step of scriptFlow) {
+                setUIState(step.state);
+                if (step.text) {
+                    addMessageToTranscript(step.state, step.text);
+                }
+                typeText(step.text, step.duration);
+                if (step.duration) await new Promise(r => setTimeout(r, step.duration));
+            }
+        }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+        setTimeout(runDemo, 800);
+    });
+
+</script>
+</body>
+</html>
