@@ -346,8 +346,33 @@
             </div>
             
             <button onclick="closeLanguageSheet()" class="w-full py-4 mt-6 rounded-2xl font-semibold text-[16px] text-gray-900 bg-gray-100 active:scale-95 transition-transform">
-                Continue
+                Save preference
             </button>
+        </div>
+    </div>
+    <!-- Analyzing Screen -->
+    <div id="analyzing-screen" class="fixed inset-0 bg-white z-[100] flex flex-col items-center justify-center opacity-0 pointer-events-none transition-opacity duration-700">
+        <!-- Glowing Background -->
+        <div class="absolute inset-0 overflow-hidden pointer-events-none">
+            <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-blue-400/20 rounded-full blur-[80px] animate-pulse"></div>
+        </div>
+        
+        <!-- Animated Loader -->
+        <div class="relative w-32 h-32 mb-10">
+            <!-- Outer dashed ring -->
+            <div class="absolute inset-0 rounded-full border-[3px] border-dashed border-blue-200 animate-[spin_8s_linear_infinite]"></div>
+            <!-- Inner solid ring -->
+            <div class="absolute inset-2 rounded-full border-[3px] border-blue-100 border-t-[#0ea5e9] animate-[spin_1.5s_ease-in-out_infinite]"></div>
+            <!-- Center Icon -->
+            <div class="absolute inset-0 flex items-center justify-center text-[#0ea5e9]">
+                <span class="material-symbols-rounded text-[40px] animate-pulse">auto_awesome</span>
+            </div>
+        </div>
+
+        <!-- Text Content -->
+        <h2 class="text-[24px] font-bold text-gray-900 mb-3 tracking-tight">Analyzing Session</h2>
+        <div class="h-6 flex justify-center items-center">
+            <p id="analyzing-subtext" class="text-[15px] text-gray-500 font-medium transition-opacity duration-500">Evaluating rapport & framing...</p>
         </div>
     </div>
 </div>
@@ -390,6 +415,41 @@
         setTimeout(() => {
             backdrop.classList.add('opacity-0', 'pointer-events-none');
         }, 300);
+    }
+
+    function showAnalyzingScreen() {
+        const screen = document.getElementById('analyzing-screen');
+        const subtext = document.getElementById('analyzing-subtext');
+        
+        // Show the screen
+        screen.classList.remove('opacity-0', 'pointer-events-none');
+        
+        // Cycle through analyzing phrases
+        const phrases = [
+            "Evaluating rapport & framing...",
+            "Analyzing speech patterns...",
+            "Identifying key insights...",
+            "Generating final report..."
+        ];
+        
+        let step = 0;
+        const interval = setInterval(() => {
+            step++;
+            if (step < phrases.length) {
+                subtext.style.opacity = '0';
+                setTimeout(() => {
+                    subtext.innerText = phrases[step];
+                    subtext.style.opacity = '1';
+                }, 500);
+            } else {
+                clearInterval(interval);
+                // For demo purposes, we'll just show an alert when done
+                setTimeout(() => {
+                    alert("Report generation complete! (Demo)");
+                    screen.classList.add('opacity-0', 'pointer-events-none');
+                }, 1500);
+            }
+        }, 2500);
     }
 
     function selectLanguage(lang) {
@@ -685,7 +745,7 @@
             primaryBtn.innerText = 'Generate Report';
             primaryBtn.onclick = () => {
                 closeConfirmation();
-                alert('Generating report...');
+                showAnalyzingScreen();
             };
         } else if (type === 'disconnect') {
             iconBg.className = 'w-14 h-14 rounded-2xl flex items-center justify-center mb-5 bg-red-50 text-red-500';
